@@ -29,22 +29,25 @@ type scannerConfig struct {
 func scan(config scannerConfig) []string {
 	//Create a temporary folder where the docker image layers are going to be stored
 	tmpPath := createTmpPath(tmpPrefix)
+	logger.Infof("tmp path: %s", tmpPrefix)
 	defer os.RemoveAll(tmpPath)
 
 	saveDockerImage(config.imageName, tmpPath)
-	layerIds := getImageLayerIds(tmpPath)
+	//	layerIds := getImageLayerIds(tmpPath)
+	clairManifest := getClairManifest(tmpPath)
 
 	//Start a server that can serve Docker image layers to Clair
 	server := httpFileServer(tmpPath)
 	defer server.Shutdown(context.TODO())
-
+	indexManifest(clairManifest, config.clairURL)
 	//Analyze the layers
-	analyzeLayers(layerIds, config.clairURL, config.scannerIP)
-	vulnerabilities := getVulnerabilities(config, layerIds)
-
-	if vulnerabilities == nil {
-		return nil // exit when no features
-	}
+	//analyzeLayers(layerIds, config.clairURL, config.scannerIP)
+	//vulnerabilities := getVulnerabilities(config, layerIds)
+	vulnerabilities := matchManifest(clairManifest.Hash, config.clairURL)
+	//	fmt.Println(vulnerabilities)
+	//	if vulnerabilities == nil {
+	//		return nil // exit when no features
+	//	}
 
 	//Check vulnerabilities against whitelist and report
 	unapproved := checkForUnapprovedVulnerabilities(config.imageName, vulnerabilities, config.whitelist, config.whitelistThreshold)
@@ -54,6 +57,7 @@ func scan(config scannerConfig) []string {
 	reportToFile(config.imageName, vulnerabilities, unapproved, config.reportFile)
 
 	return unapproved
+
 }
 
 // checkForUnapprovedVulnerabilities checks if the found vulnerabilities are approved or not in the whitelist

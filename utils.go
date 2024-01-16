@@ -31,6 +31,7 @@ var SeverityMap = map[string]int{
 	"Low":        5,
 	"Negligible": 6,
 	"Unknown":    7,
+	//"unimportant": 8, // used in debian tracker for issues https://security-team.debian.org/security_tracker.html
 }
 
 // listenForSignal listens for interactions and executes the desired code when it happens
@@ -66,7 +67,7 @@ func untar(imageReader io.ReadCloser, target string) error {
 		}
 
 		path := filepath.Join(target, header.Name)
-		if !strings.HasPrefix(path, filepath.Clean(target) + string(os.PathSeparator)) {
+		if !strings.HasPrefix(path, filepath.Clean(target)+string(os.PathSeparator)) {
 			return fmt.Errorf("%s: illegal file path", header.Name)
 		}
 		info := header.FileInfo()
